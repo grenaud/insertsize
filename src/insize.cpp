@@ -45,14 +45,24 @@ extern "C" {
 #define bam_isize(b)          ((b)->core.isize)
 #define bam_lqseq(b)          ((b)->core.l_qseq)
 
+
+
+
 using namespace std;
 
 
 
+inline void minLFiltercout(const int32_t & l,const int32_t & m){
+    if( l>=m ){ 
+	cout<<l<<endl; 
+    } 
+}
+
 int main (int argc, char *argv[]) {
 
-    bool onlyMapped=false;
-    bool onlyPP=false;
+    bool onlyMapped    =false;
+    bool onlyPP        =false;
+    int32_t  minLength =0;
 
     string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
 			"\nThis program reads a BAM file and produces the insert sizes\n"+
@@ -62,7 +72,8 @@ int main (int argc, char *argv[]) {
 			// "\nTip: if you do not need one of them, use /dev/null as your output\n"+
 
 			"\n\n\tOther options:\n"+
-			"\t\t"+"-m\t\t\tRequire the reads to be mapped (Default: "+booleanAsString( onlyMapped )+")\n"+
+			"\t\t"+"-l\t\t\tMinimum length of fragment to produce   (Default: "+booleanAsString( minLength )+")\n"+
+			"\t\t"+"-m\t\t\tRequire the reads to be mapped          (Default: "+booleanAsString( onlyMapped )+")\n"+
 			"\t\t"+"-p\t\t\tRequire the reads to be properly paired (Default: "+booleanAsString( onlyPP )+")\n"+
 			"\n");
 
@@ -76,6 +87,11 @@ int main (int argc, char *argv[]) {
     
     for(int i=1;i<(argc-1);i++){ //all but the last 3 args
 
+        if(string(argv[i]) == "-l"  ){
+            minLength=destringify<int32_t>(argv[i+1]);
+	    i++;
+            continue;
+        }
 
         if(string(argv[i]) == "-m"  ){
             onlyMapped=true;
@@ -133,14 +149,14 @@ int main (int argc, char *argv[]) {
 		int32_t isize = bam_isize(b);
 		if( isize == 0) continue; //from different chromosomes
 		if( isize > 0)
-		    cout<<isize<<endl;
+		    minLFiltercout(isize,minLength);
 		else
-		    cout<<-1.0*isize<<endl;
+		    minLFiltercout(-1.0*isize,minLength);
 	    }else{
 		//ignore
 	    }
 	}else{
-	    cout<<bam_lqseq(b)<<endl;
+	    minLFiltercout(bam_lqseq(b),minLength);
 	}
 
 	
