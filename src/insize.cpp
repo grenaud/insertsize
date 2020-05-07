@@ -6,6 +6,8 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <limits>
+
 
 
 #include <sys/types.h>
@@ -28,14 +30,18 @@ extern "C" {
 }
 
 
-#define bam_is_reverse(b)     (((b)->core.flag&BAM_FREVERSE)    != 0)
-#define bam_is_unmapped(b)    (((b)->core.flag&BAM_FUNMAP)      != 0)
-#define bam_is_paired(b)      (((b)->core.flag&BAM_FPAIRED)     != 0)
-#define bam_is_propaired(b)   (((b)->core.flag&BAM_FPROPER_PAIR) != 0)
-#define bam_is_read1(b)       (((b)->core.flag&BAM_FREAD1)      != 0)
+                                               
 
-#define bam_is_qcfailed(b)    (((b)->core.flag&BAM_FQCFAIL)     != 0)
-#define bam_is_rmdup(b)       (((b)->core.flag&BAM_FDUP)        != 0)
+#define bam_is_reverse(b)     (((b)->core.flag&BAM_FREVERSE)     != 0)
+#define bam_is_unmapped(b)    (((b)->core.flag&BAM_FUNMAP)       != 0)
+#define bam_is_mateunmpd(b)   (((b)->core.flag&BAM_FMUNMAP)      != 0)
+
+#define bam_is_paired(b)      (((b)->core.flag&BAM_FPAIRED)      != 0)
+#define bam_is_propaired(b)   (((b)->core.flag&BAM_FPROPER_PAIR) != 0)
+#define bam_is_read1(b)       (((b)->core.flag&BAM_FREAD1)       != 0)
+
+#define bam_is_qcfailed(b)    (((b)->core.flag&BAM_FQCFAIL)      != 0)
+#define bam_is_rmdup(b)       (((b)->core.flag&BAM_FDUP)         != 0)
 #define bam_is_sec(b)         (((b)->core.flag&BAM_FSECONDARY)        != 0)
 #define bam_is_supp(b)        (((b)->core.flag&BAM_FSUPPLEMENTARY)    != 0)
 
@@ -52,18 +58,27 @@ using namespace std;
 
 
 
-inline void minLFiltercout(const int32_t & l,const int32_t & m){
-    if( l>=m ){ 
-	cout<<l<<endl; 
-    } 
+inline bool minLFiltercout(const int32_t & l,const int32_t & m,const int32_t & M,unsigned int * count,bool silent){
+
+    if( l>=m  && l<=M){
+	count[l-m]++;	
+	if(!silent) cout<<l<<endl; 
+	return true;
+    }else{
+	return false;
+    }
+
 }
+
 
 int main (int argc, char *argv[]) {
 
     bool onlyMapped    =false;
     bool onlyPP        =false;
-    int32_t  minLength =0;
+    int32_t  minLength =  0;
+    int32_t  maxLength =  std::numeric_limits<int>::max();
 
+    bool verbose       =false;
     string usage=string(""+string(argv[0])+" <options>  [in BAM file]"+
 			"\nThis program reads a BAM file and produces the insert sizes\n"+
 			"\n"+
@@ -72,7 +87,9 @@ int main (int argc, char *argv[]) {
 			// "\nTip: if you do not need one of them, use /dev/null as your output\n"+
 
 			"\n\n\tOther options:\n"+
+			"\t\t"+"-v\t\t\tPrint tab separated count or NA if no data is found (Default: "+booleanAsString( verbose )+")\n"+
 			"\t\t"+"-l\t\t\tMinimum length of fragment to produce   (Default: "+booleanAsString( minLength )+")\n"+
+			"\t\t"+"-L\t\t\tMaximum length of fragment to produce   (Default: "+booleanAsString( maxLength )+")\n"+
 			"\t\t"+"-m\t\t\tRequire the reads to be mapped          (Default: "+booleanAsString( onlyMapped )+")\n"+
 			"\t\t"+"-p\t\t\tRequire the reads to be properly paired (Default: "+booleanAsString( onlyPP )+")\n"+
 			"\n");
@@ -90,6 +107,17 @@ int main (int argc, char *argv[]) {
         if(string(argv[i]) == "-l"  ){
             minLength=destringify<int32_t>(argv[i+1]);
 	    i++;
+            continue;
+        }
+
+        if(string(argv[i]) == "-L"  ){
+            maxLength=destringify<int32_t>(argv[i+1]);
+	    i++;
+            continue;
+        }
+
+        if(string(argv[i]) == "-v"  ){
+            verbose=true;
             continue;
         }
 
@@ -113,7 +141,15 @@ int main (int argc, char *argv[]) {
     samFile  *fp;
     bam1_t    *b;
     bam_hdr_t *h;
-    
+    bool printedOneRecord=false;
+    unsigned int * count=NULL;
+    if(verbose){
+	count= new unsigned int [maxLength-minLength-1];
+	for(int i=0;i<(maxLength-minLength-1);i++){
+	    count[i]=0;
+	}
+    }
+
     fp = sam_open_format(bamfiletopen.c_str(), "r", NULL); 
     if(fp == NULL){
 	cerr << "Could not open input BAM file"<< bamfiletopen << endl;
@@ -128,17 +164,24 @@ int main (int argc, char *argv[]) {
     b = bam_init1();
     while(sam_read1(fp, h, b) >= 0){
 	if(bam_is_failed(b) )          continue;
+
+	//if(b->core.l_qseq < minLength) continue;
+	bool ispaired    = bam_is_paired(b);
+	bool isfirstpair = bam_is_read1(b);
 	
 	if(bam_is_unmapped(b) ){
 	    //if the read is unmapped and we only consider mapped reads
 	    if(onlyMapped){  continue; }
 	}else{//read is mapped	    
-	    //we accept
+	    if(ispaired){
+		//both have to be mapped
+		if(onlyMapped){ 
+		    //if the mate is unmapped, skip
+		    if(bam_is_mateunmpd(b)){ continue; }
+		}
+	    }
 	}
-
-	//if(b->core.l_qseq < minLength) continue;
-	bool ispaired    = bam_is_paired(b);
-	bool isfirstpair = bam_is_read1(b);
+	//we accept
 	
 	if(ispaired){	    
 	    if( isfirstpair   ){
@@ -149,23 +192,33 @@ int main (int argc, char *argv[]) {
 		int32_t isize = bam_isize(b);
 		if( isize == 0) continue; //from different chromosomes
 		if( isize > 0)
-		    minLFiltercout(isize,minLength);
+		    printedOneRecord |= minLFiltercout(isize,minLength,maxLength,count,verbose);
 		else
-		    minLFiltercout(-1.0*isize,minLength);
+		    printedOneRecord |= minLFiltercout(-1.0*isize,minLength,maxLength,count,verbose);
 	    }else{
 		//ignore
 	    }
 	}else{
-	    minLFiltercout(bam_lqseq(b),minLength);
+	    printedOneRecord |= minLFiltercout(bam_lqseq(b),minLength,maxLength,count,verbose);
 	}
-
 	
     }
     
     bam_destroy1(b);
     sam_close(fp);
     
-   
+    if(verbose){
+	if(!printedOneRecord){
+	    cout<<"NA"<<endl;
+	}else{
+	    cout<<count[0];
+	    for(int i=0;i<(maxLength-minLength-1);i++){
+		cout<<"\t"<<count[i];
+	    }
+	    cout<<endl;
+	}
+    }
+
     return 0;
 }
 
