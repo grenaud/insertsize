@@ -58,11 +58,15 @@ using namespace std;
 
 
 
-inline bool minLFiltercout(const int32_t & l,const int32_t & m,const int32_t & M,unsigned int * count,bool silent){
+inline bool minLFiltercout(const int32_t & l,const int32_t & m,const int32_t & M,unsigned int * count,bool verbose){
 
     if( l>=m  && l<=M){
-	count[l-m]++;	
-	if(!silent) cout<<l<<endl; 
+
+	if(verbose){
+	    count[l-m]++;	
+	}else{ 
+	    cout<<l<<endl; 
+	}
 	return true;
     }else{
 	return false;
@@ -162,7 +166,9 @@ int main (int argc, char *argv[]) {
 	return 1;
     }
     b = bam_init1();
+
     while(sam_read1(fp, h, b) >= 0){
+
 	if(bam_is_failed(b) )          continue;
 
 	//if(b->core.l_qseq < minLength) continue;
@@ -182,7 +188,7 @@ int main (int argc, char *argv[]) {
 	    }
 	}
 	//we accept
-	
+
 	if(ispaired){	    
 	    if( isfirstpair   ){
 		if( !bam_is_propaired(b) ){
@@ -191,8 +197,9 @@ int main (int argc, char *argv[]) {
 
 		int32_t isize = bam_isize(b);
 		if( isize == 0) continue; //from different chromosomes
+
 		if( isize > 0)
-		    printedOneRecord |= minLFiltercout(isize,minLength,maxLength,count,verbose);
+		    printedOneRecord |= minLFiltercout(     isize,minLength,maxLength,count,verbose);
 		else
 		    printedOneRecord |= minLFiltercout(-1.0*isize,minLength,maxLength,count,verbose);
 	    }else{
