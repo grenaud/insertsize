@@ -20,17 +20,17 @@ extern "C" {
     //#include "tabix.h"
     //#include "bam.h"
 #include "htslib/sam.h"
-#include "htslib/bgzf.h"
-#include "bam.h"
+#include "htslib/faidx.h"
 
-#include "samtools.h"
-#include "sam_opts.h"
-#include "bedidx.h"
+#include "htslib/bgzf.h"
+    //#include "bam.h"
+
+    // #include "samtools.h"
+    // #include "sam_opts.h"
+    //     #include "bedidx.h"
 
 }
 
-
-                                               
 
 #define bam_is_reverse(b)     (((b)->core.flag&BAM_FREVERSE)     != 0)
 #define bam_is_unmapped(b)    (((b)->core.flag&BAM_FUNMAP)       != 0)
@@ -58,7 +58,7 @@ using namespace std;
 
 
 
-inline bool minLFiltercout(const int32_t & l,const int32_t & m,const int32_t & M,unsigned int * count,bool verbose){
+bool minLFiltercout(const int32_t & l,const int32_t & m,const int32_t & M,unsigned int * count,bool verbose){
 
     if( l>=m  && l<=M){
 
@@ -147,33 +147,40 @@ int main (int argc, char *argv[]) {
     bam_hdr_t *h;
     bool printedOneRecord=false;
     unsigned int * count=NULL;
+    int32_t isize ;
+    bool ispaired;
+    bool isfirstpair;
+
     if(verbose){
-	count= new unsigned int [maxLength-minLength-1];
-	for(int i=0;i<(maxLength-minLength-1);i++){
+	count = new unsigned int [maxLength-minLength+1];
+	for(int i=0;i<(maxLength-minLength+1);i++){
 	    count[i]=0;
 	}
     }
 
-    fp = sam_open_format(bamfiletopen.c_str(), "r", NULL); 
+    //fp = sam_open_format(bamfiletopen.c_str(), "r", NULL); 
+    fp = sam_open(bamfiletopen.c_str(), "r"); 
     if(fp == NULL){
 	cerr << "Could not open input BAM file"<< bamfiletopen << endl;
 	return 1;
     }
+
+    b = bam_init1();
 
     h = sam_hdr_read(fp);
     if(h == NULL){
 	cerr<<"Could not read header for "<<bamfiletopen<<endl;
 	return 1;
     }
-    b = bam_init1();
 
-    while(sam_read1(fp, h, b) >= 0){
 
+    while(sam_read1(fp, h, b) >= 0){	
+	//cerr<<bam_get_qname(b)<<endl;
 	if(bam_is_failed(b) )          continue;
 
 	//if(b->core.l_qseq < minLength) continue;
-	bool ispaired    = bam_is_paired(b);
-	bool isfirstpair = bam_is_read1(b);
+	ispaired    = bam_is_paired(b);
+	isfirstpair = bam_is_read1(b);
 	
 	if(bam_is_unmapped(b) ){
 	    //if the read is unmapped and we only consider mapped reads
@@ -195,7 +202,7 @@ int main (int argc, char *argv[]) {
 		    if(onlyPP){  continue; }//if not properly paired, skip		    
 		}
 
-		int32_t isize = bam_isize(b);
+		isize = bam_isize(b);
 		if( isize == 0) continue; //from different chromosomes
 
 		if( isize > 0)
@@ -207,24 +214,30 @@ int main (int argc, char *argv[]) {
 	    }
 	}else{
 	    printedOneRecord |= minLFiltercout(bam_lqseq(b),minLength,maxLength,count,verbose);
-	}
-	
+	}	
     }
     
-    bam_destroy1(b);
-    sam_close(fp);
-    
+
     if(verbose){
 	if(!printedOneRecord){
 	    cout<<"NA"<<endl;
 	}else{
 	    cout<<count[0];
-	    for(int i=0;i<(maxLength-minLength-1);i++){
+	    for(int i=0;i<(maxLength-minLength+1);i++){
 		cout<<"\t"<<count[i];
 	    }
 	    cout<<endl;
 	}
     }
+
+
+    bam_destroy1(b);
+    b = NULL;
+
+    bam_hdr_destroy(h);
+    h= NULL;
+    
+    if(fp) sam_close(fp);
 
     return 0;
 }
