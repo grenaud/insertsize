@@ -7,12 +7,12 @@ LDFLAGS  = -lgsl -lcurl -lgslcblas -llzma -lbz2 -lz  -lpthread
 LDLIBS   = ../lib/samtools/bedidx.o ../lib/htslib/libhts.a ../lib/samtools/libbam.a ../lib/samtools/libst.a 
 
 
-all:  ../lib/libgab/utils.o  ../lib/htslib/libhts.a ../lib/samtools/bedidx.o insize
+all:  ../lib/libgab/libgab.a  ../lib/htslib/libhts.a ../lib/samtools/bedidx.o insize
 
 %.o: %.cpp #../lib/libgab/utils.o  
 	${CXX} ${CXXFLAGS} $^ -o $@
 
-insize:	insize.o   ../lib/libgab/utils.o   ../lib/libgab/gzstream/libgzstream.a
+insize:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
 	${CXX} -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 ../lib/htslib/libhts.a:  ../lib/htslib/hts_internal.h
@@ -29,10 +29,10 @@ insize:	insize.o   ../lib/libgab/utils.o   ../lib/libgab/gzstream/libgzstream.a
 	rm -rf ../lib/samtools/
 	git clone --recursive https://github.com/samtools/samtools.git ../lib/samtools/
 
-../lib/libgab/utils.o:  ../lib/libgab/utils.h
-	cd ../lib/libgab/ &&  make utils.o && make -C gzstream/ && cd ../..
+../lib/libgab/libgab.a:  ../lib/libgab/libgab.h
+	cd ../lib/libgab/ &&  make libgab.a && make -C gzstream/ && cd ../..
 
-../lib/libgab/utils.h:
+../lib/libgab/libgab.h:
 	rm -rfv ../lib/libgab/
 	mkdir ../lib/libgab/
 	git clone --depth 1 https://github.com/grenaud/libgab.git ../lib/libgab/
