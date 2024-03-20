@@ -15,15 +15,18 @@ all:  ../lib/libgab/libgab.a  ../lib/htslib/libhts.a ../lib/samtools/bedidx.o in
 insize:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
 	${CXX} -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
+static:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
+	${CXX} -static -o $@ $^ $(LDLIBS) $(LDFLAGS)
+
 ../lib/htslib/libhts.a:  ../lib/htslib/hts_internal.h
-	cd ../lib/htslib/ && git submodule update --init --recursive && make && cd ../..
+	cd ../lib/htslib/ && git submodule update --init --recursive && autoreconf -i && ./configure  --disable-libcurl && make && cd ../..
 
 ../lib/htslib/hts_internal.h:
 	rm -rfv ../lib/htslib/
 	git clone --recursive https://github.com/samtools/htslib.git ../lib/htslib/
 
 ../lib/samtools/bedidx.o:  ../lib/samtools/sam.h
-	cd ../lib/samtools/ && make && cd ../..
+	cd ../lib/samtools/  && autoreconf -i && ./configure  --disable-libcurl && make && cd ../..
 
 ../lib/samtools/sam.h:
 	rm -rf ../lib/samtools/
