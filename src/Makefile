@@ -7,6 +7,8 @@ LDFLAGS  = -lgsl -lcurl -lgslcblas -llzma -lbz2 -lz  -lpthread
 LDLIBS   = ../lib/samtools/bedidx.o ../lib/htslib/libhts.a ../lib/samtools/libst.a ../lib/samtools/libst.a 
 
 
+.PHONY: all static test clean
+
 all:  ../lib/libgab/libgab.a  ../lib/htslib/libhts.a ../lib/samtools/bedidx.o insize
 
 %.o: %.cpp #../lib/libgab/utils.o  
@@ -40,6 +42,9 @@ static:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
 	mkdir ../lib/libgab/
 	git clone --depth 1 https://github.com/grenaud/libgab.git ../lib/libgab/
 
+
+test:	insize
+	../test/run_tests.sh
 
 clean :
 	rm -f *.o bam2prof diffprof
