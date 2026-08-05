@@ -25,10 +25,10 @@ static:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
 	rm -rfv ../lib/htslib/
 	git clone --recursive https://github.com/samtools/htslib.git ../lib/htslib/
 
-../lib/samtools/bedidx.o:  ../lib/samtools/sam.h
+../lib/samtools/bedidx.o:  ../lib/samtools/samtools.h
 	cd ../lib/samtools/  && autoreconf -i && ./configure  --disable-libcurl && make && cd ../..
 
-../lib/samtools/sam.h:
+../lib/samtools/samtools.h:
 	rm -rf ../lib/samtools/
 	git clone --recursive https://github.com/samtools/samtools.git ../lib/samtools/
 
