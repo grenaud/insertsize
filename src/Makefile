@@ -21,7 +21,7 @@ static:	insize.o   ../lib/libgab/libgab.a   ../lib/libgab/gzstream/libgzstream.a
 	${CXX} -static -o $@ $^ $(LDLIBS) $(LDFLAGS)
 
 ../lib/htslib/libhts.a:  ../lib/htslib/hts_internal.h
-	cd ../lib/htslib/ && git submodule update --init --recursive && autoreconf -i && ./configure  --disable-libcurl && make && cd ../..
+	cd ../lib/htslib/ && git submodule update --init --recursive && autoreconf -i && ./configure  --disable-libcurl --without-libdeflate && make && cd ../..
 
 ../lib/htslib/hts_internal.h:
 	rm -rfv ../lib/htslib/
