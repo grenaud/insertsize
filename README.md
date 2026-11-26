@@ -1,5 +1,6 @@
 # insertsize
 
+[![GitHub release](https://img.shields.io/github/v/release/grenaud/insertsize)](https://github.com/grenaud/insertsize/releases/latest)
 
 This program produces the insert size for a BAM file.
 
